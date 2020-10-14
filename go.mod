@@ -1,4 +1,4 @@
-module github.com/jay-dee7/MailHog-Server
+module github.com/jay-dee7/mailhog-server
 
 go 1.15
 

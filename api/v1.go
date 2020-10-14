@@ -53,6 +53,7 @@ func createAPIv1(conf *config.Config, router *echo.Group) *APIv1 {
 	router.Add(http.MethodGet, conf.WebPath+"/api/v1/events", v1.eventStream)
 
 	go func() {
+		ticker := time.Tick(time.Minute)
 		for {
 			select {
 			case msg := <-v1.messageChan:
@@ -65,21 +66,13 @@ func createAPIv1(conf *config.Config, router *echo.Group) *APIv1 {
 				strContent := string(bytes)
 				log.Printf("Sending content: %s\n", strContent)
 				v1.broadcast(strContent)
-			case <-time.Tick(time.Minute):
+			case <-ticker:
 				v1.keepalive()
 			}
 		}
 	}()
 
 	return v1
-}
-
-func (v1 *APIv1) defaultOptions(w http.ResponseWriter, req *http.Request) {
-	if len(v1.config.CORSOrigin) > 0 {
-		w.Header().Add("Access-Control-Allow-Origin", v1.config.CORSOrigin)
-		w.Header().Add("Access-Control-Allow-Methods", "OPTIONS,GET,POST,DELETE")
-		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
-	}
 }
 
 func (v1 *APIv1) broadcast(json string) {

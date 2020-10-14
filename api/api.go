@@ -5,7 +5,7 @@ import (
 	"github.com/mailhog/MailHog-Server/config"
 )
 
-func CreateAPI(conf *config.Config, router *echo.Router) {
+func CreateAPI(conf *config.Config, router *echo.Group) {
 	v1 := createAPIv1(conf, router)
 	v2 := createAPIv2(conf, router)
 

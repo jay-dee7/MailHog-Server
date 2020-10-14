@@ -35,7 +35,7 @@ var stream *goose.EventStream
 // ReleaseConfig is an alias to preserve go package API
 type ReleaseConfig config.OutgoingSMTP
 
-func createAPIv1(conf *config.Config, router *echo.Router) *APIv1 {
+func createAPIv1(conf *config.Config, router *echo.Group) *APIv1 {
 	v1 := &APIv1{
 		config:      conf,
 		messageChan: make(chan *data.Message),

@@ -6,7 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"time"
 
-	"github.com/jay-dee7/MailHog-Server/api"
+	"github.com/jay-dee7/mailhog-server/api"
 	"github.com/mailhog/MailHog-Server/config"
 	"github.com/mailhog/MailHog-Server/smtp"
 	comcfg "github.com/mailhog/MailHog/config"
@@ -36,7 +36,7 @@ func main() {
 	e := echo.New()
 	defer e.Shutdown(ctx)
 
-	router := echo.NewRouter(e)
+	router := e.Group("/")
 	api.CreateAPI(conf, router)
 
 	go func() {

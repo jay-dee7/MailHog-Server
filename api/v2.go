@@ -26,7 +26,7 @@ type ErrorResp struct {
 	Error string `json:"error,omitempty"`
 }
 
-func createAPIv2(conf *config.Config, router *echo.Router) *APIv2 {
+func createAPIv2(conf *config.Config, router *echo.Group) *APIv2 {
 	v2 := &APIv2{
 		config:      conf,
 		messageChan: make(chan *data.Message),

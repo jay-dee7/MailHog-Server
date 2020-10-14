@@ -98,22 +98,12 @@ func (v1 *APIv1) eventStream(ctx echo.Context) error {
 
 func (v1 *APIv1) messages(ctx echo.Context) error {
 	// TODO start, limit
-	switch v1.config.Storage.(type) {
-	case *storage.MongoDB:
-		messages, err := v1.config.Storage.(*storage.MongoDB).List(0, 1000)
-		if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: err.Error()})
-		}
-		return ctx.JSON(http.StatusOK, messages)
-	case *storage.InMemory:
-		messages, err := v1.config.Storage.(*storage.InMemory).List(0, 1000)
-		if err != nil {
-			return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: err.Error()})
-		}
-		return ctx.JSON(http.StatusOK, messages)
-	default:
-		return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: "storage type not supported"})
+
+	messages, err := v1.config.Storage.(*storage.MongoDB).List(0, 1000)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: err.Error()})
 	}
+	return ctx.JSON(http.StatusOK, messages)
 }
 
 func (v1 *APIv1) message(ctx echo.Context) error {
@@ -133,26 +123,16 @@ func (v1 *APIv1) download(ctx echo.Context) error {
 	ctx.Response().Header().Set("Content-Type", "message/rfc822")
 	ctx.Response().Header().Set("Content-Disposition", "attachment; filename=\""+id+".eml\"")
 
-	switch v1.config.Storage.(type) {
-	case *storage.MongoDB:
-		message, _ := v1.config.Storage.(*storage.MongoDB).Load(id)
-		for h, l := range message.Content.Headers {
-			for _, v := range l {
-				_, _ = ctx.Response().Write([]byte(h + ": " + v + "\r\n"))
-			}
-		}
-		_, _ = ctx.Response().Write([]byte("\r\n" + message.Content.Body))
-	case *storage.InMemory:
-		message, _ := v1.config.Storage.(*storage.InMemory).Load(id)
-		for h, l := range message.Content.Headers {
-			for _, v := range l {
-				_, _ = ctx.Response().Write([]byte(h + ": " + v + "\r\n"))
-			}
-		}
-		_, _ = ctx.Response().Write([]byte("\r\n" + message.Content.Body))
-	default:
-		return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: "storage type not supported"})
+	message, err := v1.config.Storage.(*storage.MongoDB).Load(id)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
+	for h, l := range message.Content.Headers {
+		for _, v := range l {
+			_, _ = ctx.Response().Write([]byte(h + ": " + v + "\r\n"))
+		}
+	}
+	_, _ = ctx.Response().Write([]byte("\r\n" + message.Content.Body))
 
 	return nil
 }

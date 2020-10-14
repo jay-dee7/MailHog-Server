@@ -117,7 +117,7 @@ func (v1 *APIv1) messages(ctx echo.Context) error {
 }
 
 func (v1 *APIv1) message(ctx echo.Context) error {
-	id := ctx.QueryParams().Get(":id")
+	id := ctx.Param("id")
 
 	message, err := v1.config.Storage.Load(id)
 	if err != nil {
@@ -158,8 +158,8 @@ func (v1 *APIv1) download(ctx echo.Context) error {
 }
 
 func (v1 *APIv1) downloadPart(ctx echo.Context) error {
-	id := ctx.QueryParams().Get(":id")
-	part := ctx.QueryParams().Get(":part")
+	id := ctx.Param("id")
+	part := ctx.Param("part")
 
 	ctx.Response().Header().Set("Content-Disposition", "attachment; filename=\""+id+"-part-"+part+"\"")
 
@@ -205,7 +205,7 @@ func (v1 *APIv1) deleteAll(ctx echo.Context) error {
 }
 
 func (v1 *APIv1) releaseOne(ctx echo.Context) error {
-	id := ctx.QueryParams().Get(":id")
+	id := ctx.Param("id")
 
 	msg, err := v1.config.Storage.Load(id)
 	if err != nil {
@@ -216,6 +216,7 @@ func (v1 *APIv1) releaseOne(ctx echo.Context) error {
 	if err = json.NewDecoder(ctx.Request().Body).Decode(&cfg); err != nil {
 		return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: err.Error()})
 	}
+	defer ctx.Request().Body.Close()
 	ctx.Logger().Printf("%+v", cfg)
 
 	ctx.Logger().Printf("Got message: %s", msg.ID)
@@ -284,7 +285,7 @@ func (v1 *APIv1) releaseOne(ctx echo.Context) error {
 }
 
 func (v1 *APIv1) deleteOne(ctx echo.Context) error {
-	id := ctx.QueryParams().Get(":id")
+	id := ctx.Param("id")
 
 	err := v1.config.Storage.DeleteOne(id)
 	if err != nil {

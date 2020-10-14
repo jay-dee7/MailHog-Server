@@ -17,7 +17,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		SMTPBindAddr: "0.0.0.0:1025",
 		APIBindAddr:  "0.0.0.0:8025",
-		Hostname:     "mailhog.example",
+		Hostname:     "mailhog.test",
 		MongoURI:     "127.0.0.1:27017",
 		MongoDb:      "mailhog",
 		MongoColl:    "messages",

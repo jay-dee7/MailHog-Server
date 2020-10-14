@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/jay-dee7/MailHog-Server/api"
+	"github.com/jay-dee7/MailHog-Server/smtp"
 	"github.com/mailhog/MailHog-Server/config"
-	"github.com/mailhog/MailHog-Server/smtp"
 	comcfg "github.com/mailhog/MailHog/config"
 	"github.com/mailhog/http"
 )

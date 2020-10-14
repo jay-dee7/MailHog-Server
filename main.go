@@ -1,51 +1,49 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"os"
+	"github.com/labstack/echo/v4"
+	"time"
 
-	gohttp "net/http"
-
-	"github.com/ian-kent/go-log/log"
-	"github.com/mailhog/MailHog-Server/api"
+	"github.com/jay-dee7/MailHog-Server/api"
 	"github.com/mailhog/MailHog-Server/config"
 	"github.com/mailhog/MailHog-Server/smtp"
-	"github.com/mailhog/MailHog-UI/assets"
 	comcfg "github.com/mailhog/MailHog/config"
 	"github.com/mailhog/http"
 )
 
-var conf *config.Config
-var comconf *comcfg.Config
-var exitCh chan int
-
-func configure() {
+func configureCliFlags() (*config.Config, *comcfg.Config) {
 	comcfg.RegisterFlags()
 	config.RegisterFlags()
 	flag.Parse()
-	conf = config.Configure()
-	comconf = comcfg.Configure()
+	return config.Configure(), comcfg.Configure()
 }
 
 func main() {
-	configure()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	conf, comconf := configureCliFlags()
 
 	if comconf.AuthFile != "" {
 		http.AuthFile(comconf.AuthFile)
 	}
 
-	exitCh = make(chan int)
-	cb := func(r gohttp.Handler) {
-		api.CreateAPI(conf, r)
-	}
-	go http.Listen(conf.APIBindAddr, assets.Asset, exitCh, cb)
-	go smtp.Listen(conf, exitCh)
+	apiServerSig := make(chan error)
+	smtpServerSig := make(chan int)
 
-	for {
-		select {
-		case <-exitCh:
-			log.Printf("Received exit signal")
-			os.Exit(0)
-		}
-	}
+	e := echo.New()
+	defer e.Shutdown(ctx)
+
+	router := echo.NewRouter(e)
+	api.CreateAPI(conf, router)
+
+	go func() {
+		apiServerSig <- e.Start(conf.APIBindAddr)
+	}()
+
+	go smtp.Listen(conf, smtpServerSig)
+
+	e.Logger.Printf("api server stopped: %q", <-apiServerSig)
 }

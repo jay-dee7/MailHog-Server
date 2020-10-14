@@ -1,22 +1,20 @@
 package api
 
 import (
-	gohttp "net/http"
-
-	"github.com/gorilla/pat"
+	"github.com/labstack/echo/v4"
 	"github.com/mailhog/MailHog-Server/config"
 )
 
-func CreateAPI(conf *config.Config, r gohttp.Handler) {
-	apiv1 := createAPIv1(conf, r.(*pat.Router))
-	apiv2 := createAPIv2(conf, r.(*pat.Router))
+func CreateAPI(conf *config.Config, router *echo.Router) {
+	v1 := createAPIv1(conf, router)
+	v2 := createAPIv2(conf, router)
 
 	go func() {
 		for {
 			select {
 			case msg := <-conf.MessageChan:
-				apiv1.messageChan <- msg
-				apiv2.messageChan <- msg
+				v1.messageChan <- msg
+				v2.messageChan <- msg
 			}
 		}
 	}()

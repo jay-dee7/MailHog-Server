@@ -1,4 +1,4 @@
-module github.com/jay-dee7/mailhog-server
+module github.com/jay-dee7/MailHog-Server
 
 go 1.15
 
@@ -16,7 +16,6 @@ require (
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/mailhog/MailHog v1.0.1
 	github.com/mailhog/MailHog-Server v1.0.1
-	github.com/mailhog/MailHog-UI v1.0.1
 	github.com/mailhog/data v1.0.1
 	github.com/mailhog/http v1.0.1
 	github.com/mailhog/smtp v1.0.1

@@ -101,8 +101,8 @@ func (c *Session) validateSender(from string) bool {
 func (c *Session) acceptMessage(msg *data.SMTPMessage) (id string, err error) {
 	m := msg.Parse(c.proto.Hostname)
 	c.logf("Storing message %s", m.ID)
-	defer c.logf("returned from storing message")
 	id, err = c.storage.Store(m)
+	c.logf("\n\n returned from storing message: %s\n\n\n\n", *m)
 	c.messageChan <- m
 	return
 }

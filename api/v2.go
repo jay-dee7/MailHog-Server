@@ -1,14 +1,13 @@
 package api
 
 import (
-	"encoding/json"
+	"github.com/labstack/echo/v4"
 	"net/http"
+	"net/url"
 	"strconv"
 
-	"github.com/gorilla/pat"
 	"github.com/ian-kent/go-log/log"
 	"github.com/mailhog/MailHog-Server/config"
-	"github.com/mailhog/MailHog-Server/monkey"
 	"github.com/mailhog/MailHog-Server/websockets"
 	"github.com/mailhog/data"
 )
@@ -23,47 +22,38 @@ type APIv2 struct {
 	wsHub       *websockets.Hub
 }
 
-func createAPIv2(conf *config.Config, r *pat.Router) *APIv2 {
-	log.Println("Creating API v2 with WebPath: " + conf.WebPath)
-	apiv2 := &APIv2{
+type ErrorResp struct {
+	Error string `json:"error,omitempty"`
+}
+
+func createAPIv2(conf *config.Config, router *echo.Router) *APIv2 {
+	v2 := &APIv2{
 		config:      conf,
 		messageChan: make(chan *data.Message),
 		wsHub:       websockets.NewHub(),
 	}
 
-	r.Path(conf.WebPath + "/api/v2/messages").Methods("GET").HandlerFunc(apiv2.messages)
-	r.Path(conf.WebPath + "/api/v2/messages").Methods("OPTIONS").HandlerFunc(apiv2.defaultOptions)
-
-	r.Path(conf.WebPath + "/api/v2/search").Methods("GET").HandlerFunc(apiv2.search)
-	r.Path(conf.WebPath + "/api/v2/search").Methods("OPTIONS").HandlerFunc(apiv2.defaultOptions)
-
-	r.Path(conf.WebPath + "/api/v2/jim").Methods("GET").HandlerFunc(apiv2.jim)
-	r.Path(conf.WebPath + "/api/v2/jim").Methods("POST").HandlerFunc(apiv2.createJim)
-	r.Path(conf.WebPath + "/api/v2/jim").Methods("PUT").HandlerFunc(apiv2.updateJim)
-	r.Path(conf.WebPath + "/api/v2/jim").Methods("DELETE").HandlerFunc(apiv2.deleteJim)
-	r.Path(conf.WebPath + "/api/v2/jim").Methods("OPTIONS").HandlerFunc(apiv2.defaultOptions)
-
-	r.Path(conf.WebPath + "/api/v2/outgoing-smtp").Methods("GET").HandlerFunc(apiv2.listOutgoingSMTP)
-	r.Path(conf.WebPath + "/api/v2/outgoing-smtp").Methods("OPTIONS").HandlerFunc(apiv2.defaultOptions)
-
-	r.Path(conf.WebPath + "/api/v2/websocket").Methods("GET").HandlerFunc(apiv2.websocket)
+	router.Add(http.MethodGet, conf.WebPath+"/api/v2/messages", v2.messages)
+	router.Add(http.MethodGet, conf.WebPath+"/api/v2/search", v2.search)
+	router.Add(http.MethodGet, conf.WebPath+"/api/v2/outgoing-smtp", v2.listOutgoingSMTP)
+	router.Add(http.MethodGet, conf.WebPath+"/api/v2/websocket", v2.websocket)
 
 	go func() {
 		for {
 			select {
-			case msg := <-apiv2.messageChan:
+			case msg := <-v2.messageChan:
 				log.Println("Got message in APIv2 websocket channel")
-				apiv2.broadcast(msg)
+				v2.broadcast(msg)
 			}
 		}
 	}()
 
-	return apiv2
+	return v2
 }
 
-func (apiv2 *APIv2) defaultOptions(w http.ResponseWriter, req *http.Request) {
-	if len(apiv2.config.CORSOrigin) > 0 {
-		w.Header().Add("Access-Control-Allow-Origin", apiv2.config.CORSOrigin)
+func (v2 *APIv2) defaultOptions(w http.ResponseWriter, req *http.Request) {
+	if len(v2.config.CORSOrigin) > 0 {
+		w.Header().Add("Access-Control-Allow-Origin", v2.config.CORSOrigin)
 		w.Header().Add("Access-Control-Allow-Methods", "OPTIONS,GET,PUT,POST,DELETE")
 		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 	}
@@ -76,16 +66,16 @@ type messagesResult struct {
 	Items []data.Message `json:"items"`
 }
 
-func (apiv2 *APIv2) getStartLimit(w http.ResponseWriter, req *http.Request) (start, limit int) {
+func (v2 *APIv2) getStartLimit(q url.Values) (start, limit int) {
 	start = 0
 	limit = 50
 
-	s := req.URL.Query().Get("start")
+	s := q.Get("start")
 	if n, e := strconv.ParseInt(s, 10, 64); e == nil && n > 0 {
 		start = int(n)
 	}
 
-	l := req.URL.Query().Get("limit")
+	l := q.Get("limit")
 	if n, e := strconv.ParseInt(l, 10, 64); e == nil && n > 0 {
 		if n > 250 {
 			n = 250
@@ -96,163 +86,69 @@ func (apiv2 *APIv2) getStartLimit(w http.ResponseWriter, req *http.Request) (sta
 	return
 }
 
-func (apiv2 *APIv2) messages(w http.ResponseWriter, req *http.Request) {
-	log.Println("[APIv2] GET /api/v2/messages")
+func (v2 *APIv2) messages(ctx echo.Context) error {
+	start, limit := v2.getStartLimit(ctx.QueryParams())
 
-	apiv2.defaultOptions(w, req)
-
-	start, limit := apiv2.getStartLimit(w, req)
-
-	var res messagesResult
-
-	messages, err := apiv2.config.Storage.List(start, limit)
+	messages, err := v2.config.Storage.List(start, limit)
 	if err != nil {
-		panic(err)
+		return ctx.JSON(http.StatusInternalServerError, ErrorResp{
+			Error: err.Error(),
+		})
 	}
 
-	res.Count = len([]data.Message(*messages))
-	res.Start = start
-	res.Items = []data.Message(*messages)
-	res.Total = apiv2.config.Storage.Count()
+	res := messagesResult{
+		Total: v2.config.Storage.Count(),
+		Count: len(*messages),
+		Start: start,
+		Items: *messages,
+	}
 
-	bytes, _ := json.Marshal(res)
-	w.Header().Add("Content-Type", "text/json")
-	w.Write(bytes)
+	return ctx.JSON(http.StatusOK, res)
 }
 
-func (apiv2 *APIv2) search(w http.ResponseWriter, req *http.Request) {
-	log.Println("[APIv2] GET /api/v2/search")
+func (v2 *APIv2) search(ctx echo.Context) error {
+	start, limit := v2.getStartLimit(ctx.QueryParams())
 
-	apiv2.defaultOptions(w, req)
-
-	start, limit := apiv2.getStartLimit(w, req)
-
-	kind := req.URL.Query().Get("kind")
+	kind := ctx.QueryParams().Get("kind")
 	if kind != "from" && kind != "to" && kind != "containing" {
-		w.WriteHeader(400)
-		return
+		return ctx.JSON(http.StatusBadRequest, ErrorResp{
+			Error: "invalid search param: kind",
+		})
 	}
 
-	query := req.URL.Query().Get("query")
+	query := ctx.QueryParams().Get("query")
 	if len(query) == 0 {
-		w.WriteHeader(400)
-		return
+		return ctx.JSON(http.StatusBadRequest, ErrorResp{
+			Error: "invalid search param: query",
+		})
 	}
 
-	var res messagesResult
-
-	messages, total, _ := apiv2.config.Storage.Search(kind, query, start, limit)
-
-	res.Count = len([]data.Message(*messages))
-	res.Start = start
-	res.Items = []data.Message(*messages)
-	res.Total = total
-
-	b, _ := json.Marshal(res)
-	w.Header().Add("Content-Type", "application/json")
-	w.Write(b)
-}
-
-func (apiv2 *APIv2) jim(w http.ResponseWriter, req *http.Request) {
-	log.Println("[APIv2] GET /api/v2/jim")
-
-	apiv2.defaultOptions(w, req)
-
-	if apiv2.config.Monkey == nil {
-		w.WriteHeader(404)
-		return
-	}
-
-	b, _ := json.Marshal(apiv2.config.Monkey)
-	w.Header().Add("Content-Type", "application/json")
-	w.Write(b)
-}
-
-func (apiv2 *APIv2) deleteJim(w http.ResponseWriter, req *http.Request) {
-	log.Println("[APIv2] DELETE /api/v2/jim")
-
-	apiv2.defaultOptions(w, req)
-
-	if apiv2.config.Monkey == nil {
-		w.WriteHeader(404)
-		return
-	}
-
-	apiv2.config.Monkey = nil
-}
-
-func (apiv2 *APIv2) createJim(w http.ResponseWriter, req *http.Request) {
-	log.Println("[APIv2] POST /api/v2/jim")
-
-	apiv2.defaultOptions(w, req)
-
-	if apiv2.config.Monkey != nil {
-		w.WriteHeader(400)
-		return
-	}
-
-	apiv2.config.Monkey = config.Jim
-
-	// Try, but ignore errors
-	// Could be better (e.g., ok if no json, error if badly formed json)
-	// but this works for now
-	apiv2.newJimFromBody(w, req)
-
-	w.WriteHeader(201)
-}
-
-func (apiv2 *APIv2) newJimFromBody(w http.ResponseWriter, req *http.Request) error {
-	var jim monkey.Jim
-
-	dec := json.NewDecoder(req.Body)
-	err := dec.Decode(&jim)
-
+	messages, total, err := v2.config.Storage.Search(kind, query, start, limit)
 	if err != nil {
-		return err
+		return ctx.JSON(http.StatusInternalServerError, ErrorResp{
+			Error: err.Error(),
+		})
 	}
 
-	jim.ConfigureFrom(config.Jim)
+	resp := messagesResult{
+		Total: total,
+		Count: len(*messages),
+		Start: start,
+		Items: *messages,
+	}
 
-	config.Jim = &jim
-	apiv2.config.Monkey = &jim
+	return ctx.JSON(http.StatusOK, resp)
+}
 
+func (v2 *APIv2) listOutgoingSMTP(ctx echo.Context) error {
+	return ctx.JSON(http.StatusOK, v2.config.OutgoingSMTP)
+}
+
+func (v2 *APIv2) websocket(ctx echo.Context) error {
+	v2.wsHub.Serve(ctx.Response(), ctx.Request())
 	return nil
 }
 
-func (apiv2 *APIv2) updateJim(w http.ResponseWriter, req *http.Request) {
-	log.Println("[APIv2] PUT /api/v2/jim")
-
-	apiv2.defaultOptions(w, req)
-
-	if apiv2.config.Monkey == nil {
-		w.WriteHeader(404)
-		return
-	}
-
-	err := apiv2.newJimFromBody(w, req)
-	if err != nil {
-		w.WriteHeader(400)
-	}
-}
-
-func (apiv2 *APIv2) listOutgoingSMTP(w http.ResponseWriter, req *http.Request) {
-	log.Println("[APIv2] GET /api/v2/outgoing-smtp")
-
-	apiv2.defaultOptions(w, req)
-
-	b, _ := json.Marshal(apiv2.config.OutgoingSMTP)
-	w.Header().Add("Content-Type", "application/json")
-	w.Write(b)
-}
-
-func (apiv2 *APIv2) websocket(w http.ResponseWriter, req *http.Request) {
-	log.Println("[APIv2] GET /api/v2/websocket")
-
-	apiv2.wsHub.Serve(w, req)
-}
-
-func (apiv2 *APIv2) broadcast(msg *data.Message) {
-	log.Println("[APIv2] BROADCAST /api/v2/websocket")
-
-	apiv2.wsHub.Broadcast(msg)
+func (v2 *APIv2) broadcast(msg *data.Message) {
+	v2.wsHub.Broadcast(msg)
 }

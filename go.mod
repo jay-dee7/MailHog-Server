@@ -12,6 +12,7 @@ require (
 	github.com/ian-kent/go-log v0.0.0-20160113211217-5731446c36ab
 	github.com/ian-kent/goose v0.0.0-20141221090059-c3541ea826ad
 	github.com/ian-kent/linkio v0.0.0-20170807205755-97566b872887
+	github.com/jay-dee7/storage v1.0.4-0.20201017173842-1f3d90b9bcfa
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/labstack/echo/v4 v4.1.17
 	github.com/mailhog/MailHog v1.0.1

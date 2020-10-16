@@ -21,6 +21,14 @@ github.com/ian-kent/goose v0.0.0-20141221090059-c3541ea826ad h1:5UZIY1lPvsBrRQRg
 github.com/ian-kent/goose v0.0.0-20141221090059-c3541ea826ad/go.mod h1:VHyJj0/IJFmpYvVqWFIN2HgjCatXujj7XaLLyOMC23M=
 github.com/ian-kent/linkio v0.0.0-20170807205755-97566b872887 h1:LPaZmcRJS13h+igi07S26uKy0qxCa76u1+pArD+JGrY=
 github.com/ian-kent/linkio v0.0.0-20170807205755-97566b872887/go.mod h1:aE63iKqF9rMrshaEiYZroUYFZLaYoTuA7pBMsg3lJoY=
+github.com/jay-dee7/storage v1.0.2 h1:ly7PjBaMgjTQU4FAqzylDJ9bzcQ0ju2TX3uV1mnr5ug=
+github.com/jay-dee7/storage v1.0.2/go.mod h1:36cgeAdnhNpZ6+4iOXhhQN94k1Q1X9jT0R2u5Suqrgg=
+github.com/jay-dee7/storage v1.0.3 h1:1RIW5Flzh9YtbUdub1yIcvIW0TjOlVhjX1fLvVB0Zmo=
+github.com/jay-dee7/storage v1.0.3/go.mod h1:36cgeAdnhNpZ6+4iOXhhQN94k1Q1X9jT0R2u5Suqrgg=
+github.com/jay-dee7/storage v1.0.4-0.20201017150418-6c2c10da5676 h1:vZ64aqHd3bfFV1BRZTWLQddtVU2pMdGdE1CuK+MnM4s=
+github.com/jay-dee7/storage v1.0.4-0.20201017150418-6c2c10da5676/go.mod h1:36cgeAdnhNpZ6+4iOXhhQN94k1Q1X9jT0R2u5Suqrgg=
+github.com/jay-dee7/storage v1.0.4-0.20201017173842-1f3d90b9bcfa h1:Vqiwo8C0xrE9GfmQ9BhYDa5CVO/ttpYXCgQAseSGGIQ=
+github.com/jay-dee7/storage v1.0.4-0.20201017173842-1f3d90b9bcfa/go.mod h1:36cgeAdnhNpZ6+4iOXhhQN94k1Q1X9jT0R2u5Suqrgg=
 github.com/jtolds/gls v4.20.0+incompatible h1:xdiiI2gbIgH/gLH7ADydsJ1uDOEzR8yvV7C0MuV77Wo=
 github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfVYBRgL+9YlvaHOwJU=
 github.com/kr/pretty v0.2.1 h1:Fmg33tUaq4/8ym9TJN1x7sLJnHVwhP33CNkpYV/7rwI=

@@ -1,8 +1,8 @@
 package api
 
 import (
+	"github.com/jay-dee7/MailHog-Server/config"
 	"github.com/labstack/echo/v4"
-	"github.com/mailhog/MailHog-Server/config"
 )
 
 func CreateAPI(conf *config.Config, router *echo.Group) {

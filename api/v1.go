@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/ian-kent/go-log/log"
-	"github.com/mailhog/MailHog-Server/config"
+	"github.com/jay-dee7/MailHog-Server/config"
+	"github.com/jay-dee7/storage"
 	"github.com/mailhog/data"
-	"github.com/mailhog/storage"
 
 	"github.com/ian-kent/goose"
 )
@@ -35,7 +35,7 @@ var stream *goose.EventStream
 // ReleaseConfig is an alias to preserve go package API
 type ReleaseConfig config.OutgoingSMTP
 
-func createAPIv1(conf *config.Config, router *echo.Group) *APIv1 {
+func createAPIv1(conf *config.Config, g *echo.Group) *APIv1 {
 	v1 := &APIv1{
 		config:      conf,
 		messageChan: make(chan *data.Message),
@@ -43,14 +43,19 @@ func createAPIv1(conf *config.Config, router *echo.Group) *APIv1 {
 
 	stream = goose.NewEventStream()
 
-	router.Add(http.MethodGet, conf.WebPath+"/api/v1/messages", v1.messages)
-	router.Add(http.MethodDelete, conf.WebPath+"/api/v1/messages", v1.deleteAll)
-	router.Add(http.MethodGet, conf.WebPath+"/api/v1/messages/:id", v1.message)
-	router.Add(http.MethodDelete, conf.WebPath+"/api/v1/messages/:id", v1.deleteOne)
-	router.Add(http.MethodGet, conf.WebPath+"/api/v1/messages/:id/download", v1.download)
-	router.Add(http.MethodGet, conf.WebPath+"/api/v1/messages/:id/mime/part/:part/download", v1.downloadPart)
-	router.Add(http.MethodPost, conf.WebPath+"/api/v1/messages/:id/release", v1.releaseOne)
-	router.Add(http.MethodGet, conf.WebPath+"/api/v1/events", v1.eventStream)
+	v1Group := g.Group(conf.WebPath + "/api/v1")
+	msgGroup := v1Group.Group("/messages")
+
+	v1Group.Add(http.MethodGet, conf.WebPath+"/events", v1.eventStream)
+
+	msgGroup.Add(http.MethodGet, "", v1.messages)
+	msgGroup.Add(http.MethodDelete, "", v1.deleteAll)
+
+	msgGroup.Add(http.MethodGet, "/:id", v1.message)
+	msgGroup.Add(http.MethodDelete, "/:id", v1.deleteOne)
+	msgGroup.Add(http.MethodGet, "/:id/download", v1.download)
+	msgGroup.Add(http.MethodGet, "/:id/mime/part/:part/download", v1.downloadPart)
+	msgGroup.Add(http.MethodPost, "/:id/release", v1.releaseOne)
 
 	go func() {
 		ticker := time.Tick(time.Minute)
@@ -63,9 +68,8 @@ func createAPIv1(conf *config.Config, router *echo.Group) *APIv1 {
 					log.Printf("error in marshalIndent: %s", err)
 					continue
 				}
-				strContent := string(bytes)
-				log.Printf("Sending content: %s\n", strContent)
-				v1.broadcast(strContent)
+				log.Printf("Sending content: %s\n", bytes)
+				v1.broadcast(bytes)
 			case <-ticker:
 				v1.keepalive()
 			}
@@ -75,10 +79,9 @@ func createAPIv1(conf *config.Config, router *echo.Group) *APIv1 {
 	return v1
 }
 
-func (v1 *APIv1) broadcast(json string) {
+func (v1 *APIv1) broadcast(json []byte) {
 	log.Println("[APIv1] BROADCAST /api/v1/events")
-	b := []byte(json)
-	stream.Notify("data", b)
+	stream.Notify("data", json)
 }
 
 // keepalive sends an empty keep alive message.
@@ -98,8 +101,14 @@ func (v1 *APIv1) eventStream(ctx echo.Context) error {
 
 func (v1 *APIv1) messages(ctx echo.Context) error {
 	// TODO start, limit
+	tenant, ok := ctx.Get("tenant").(string)
+	if !ok {
+		return ctx.JSON(http.StatusPreconditionRequired, echo.Map{
+			"error": "missing tenant id in request context",
+		})
+	}
 
-	messages, err := v1.config.Storage.(*storage.MongoDB).List(0, 1000)
+	messages, err := v1.config.Storage.(*storage.MultiTenantMongoDB).List(0, 1000, tenant)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: err.Error()})
 	}
@@ -108,8 +117,9 @@ func (v1 *APIv1) messages(ctx echo.Context) error {
 
 func (v1 *APIv1) message(ctx echo.Context) error {
 	id := ctx.Param("id")
+	tenant := ctx.Get("tenant").(string)
 
-	message, err := v1.config.Storage.Load(id)
+	message, err := v1.config.Storage.Load(id, tenant)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, ErrorResp{Error: err.Error()})
 	}
@@ -119,11 +129,17 @@ func (v1 *APIv1) message(ctx echo.Context) error {
 
 func (v1 *APIv1) download(ctx echo.Context) error {
 	id := ctx.QueryParams().Get(":id")
+	tenant, ok := ctx.Get("tenant").(string)
+	if !ok {
+		return ctx.JSON(http.StatusPreconditionRequired, echo.Map{
+			"error": "missing tenant id in request context",
+		})
+	}
 
 	ctx.Response().Header().Set("Content-Type", "message/rfc822")
 	ctx.Response().Header().Set("Content-Disposition", "attachment; filename=\""+id+".eml\"")
 
-	message, err := v1.config.Storage.(*storage.MongoDB).Load(id)
+	message, err := v1.config.Storage.(*storage.MultiTenantMongoDB).Load(id, tenant)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": err.Error()})
 	}
@@ -142,8 +158,14 @@ func (v1 *APIv1) downloadPart(ctx echo.Context) error {
 	part := ctx.Param("part")
 
 	ctx.Response().Header().Set("Content-Disposition", "attachment; filename=\""+id+"-part-"+part+"\"")
+	tenant, ok := ctx.Get("tenant").(string)
+	if !ok {
+		return ctx.JSON(http.StatusPreconditionRequired, echo.Map{
+			"error": "missing tenant id in request context",
+		})
+	}
 
-	message, _ := v1.config.Storage.Load(id)
+	message, _ := v1.config.Storage.Load(id, tenant)
 	contentTransferEncoding := ""
 	pid, _ := strconv.Atoi(part)
 	for h, l := range message.MIME.Parts[pid].Headers {
@@ -176,7 +198,14 @@ func (v1 *APIv1) downloadPart(ctx echo.Context) error {
 }
 
 func (v1 *APIv1) deleteAll(ctx echo.Context) error {
-	err := v1.config.Storage.DeleteAll()
+	tenant, ok := ctx.Get("tenant").(string)
+	if !ok {
+		return ctx.JSON(http.StatusPreconditionRequired, echo.Map{
+			"error": "missing tenant id in request context",
+		})
+	}
+
+	err := v1.config.Storage.DeleteAll(tenant)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: err.Error()})
 	}
@@ -186,8 +215,14 @@ func (v1 *APIv1) deleteAll(ctx echo.Context) error {
 
 func (v1 *APIv1) releaseOne(ctx echo.Context) error {
 	id := ctx.Param("id")
+	tenant, ok := ctx.Get("tenant").(string)
+	if !ok {
+		return ctx.JSON(http.StatusPreconditionRequired, echo.Map{
+			"error": "missing tenant id in request context",
+		})
+	}
 
-	msg, err := v1.config.Storage.Load(id)
+	msg, err := v1.config.Storage.Load(id, tenant)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, ErrorResp{Error: err.Error()})
 	}
@@ -266,8 +301,14 @@ func (v1 *APIv1) releaseOne(ctx echo.Context) error {
 
 func (v1 *APIv1) deleteOne(ctx echo.Context) error {
 	id := ctx.Param("id")
+	tenant, ok := ctx.Get("tenant").(string)
+	if !ok {
+		return ctx.JSON(http.StatusPreconditionRequired, echo.Map{
+			"error": "missing tenant id in request context",
+		})
+	}
 
-	err := v1.config.Storage.DeleteOne(id)
+	err := v1.config.Storage.DeleteOne(id, tenant)
 	if err != nil {
 		ctx.Logger().Print(err.Error())
 		return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: err.Error()})

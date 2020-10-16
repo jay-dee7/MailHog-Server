@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/ian-kent/go-log/log"
-	"github.com/mailhog/MailHog-Server/config"
+	"github.com/jay-dee7/MailHog-Server/config"
 	"github.com/mailhog/MailHog-Server/websockets"
 	"github.com/mailhog/data"
 )
@@ -51,14 +51,6 @@ func createAPIv2(conf *config.Config, router *echo.Group) *APIv2 {
 	return v2
 }
 
-func (v2 *APIv2) defaultOptions(w http.ResponseWriter, req *http.Request) {
-	if len(v2.config.CORSOrigin) > 0 {
-		w.Header().Add("Access-Control-Allow-Origin", v2.config.CORSOrigin)
-		w.Header().Add("Access-Control-Allow-Methods", "OPTIONS,GET,PUT,POST,DELETE")
-		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
-	}
-}
-
 type messagesResult struct {
 	Total int            `json:"total"`
 	Count int            `json:"count"`
@@ -89,7 +81,13 @@ func (v2 *APIv2) getStartLimit(q url.Values) (start, limit int) {
 func (v2 *APIv2) messages(ctx echo.Context) error {
 	start, limit := v2.getStartLimit(ctx.QueryParams())
 
-	messages, err := v2.config.Storage.List(start, limit)
+	tenant, ok := ctx.Get("tenant").(string)
+	if !ok {
+		return ctx.JSON(http.StatusPreconditionRequired, echo.Map{
+			"error": "missing tenant id in request context",
+		})
+	}
+	messages, err := v2.config.Storage.List(start, limit, tenant)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, ErrorResp{
 			Error: err.Error(),
@@ -97,7 +95,7 @@ func (v2 *APIv2) messages(ctx echo.Context) error {
 	}
 
 	res := messagesResult{
-		Total: v2.config.Storage.Count(),
+		Total: v2.config.Storage.Count(tenant),
 		Count: len(*messages),
 		Start: start,
 		Items: *messages,
@@ -123,12 +121,20 @@ func (v2 *APIv2) search(ctx echo.Context) error {
 		})
 	}
 
-	messages, total, err := v2.config.Storage.Search(kind, query, start, limit)
+	tenant, ok := ctx.Get("tenant").(string)
+	if !ok {
+		return ctx.JSON(http.StatusPreconditionRequired, echo.Map{
+			"error": "missing tenant id in request context",
+		})
+	}
+
+	messages, total, err := v2.config.Storage.Search(kind, query, start, limit, tenant)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, ErrorResp{
 			Error: err.Error(),
 		})
 	}
+	ctx.Logger().Printf("%s", messages)
 
 	resp := messagesResult{
 		Total: total,

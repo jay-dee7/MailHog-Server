@@ -3,22 +3,23 @@ package smtp
 // http://www.rfc-editor.org/rfc/rfc5321.txt
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"strings"
 
 	"github.com/ian-kent/linkio"
+	"github.com/jay-dee7/storage"
 	"github.com/mailhog/MailHog-Server/monkey"
 	"github.com/mailhog/data"
 	"github.com/mailhog/smtp"
-	"github.com/mailhog/storage"
 )
 
 // Session represents a SMTP session using net.TCPConn
 type Session struct {
 	conn          io.ReadWriteCloser
 	proto         *smtp.Protocol
-	storage       storage.Storage
+	storage       storage.MultiTenantStorage
 	messageChan   chan *data.Message
 	remoteAddress string
 	isTLS         bool
@@ -31,7 +32,7 @@ type Session struct {
 }
 
 // Accept starts a new SMTP session using io.ReadWriteCloser
-func Accept(remoteAddress string, conn io.ReadWriteCloser, storage storage.Storage, messageChan chan *data.Message, hostname string, monkey monkey.ChaosMonkey) {
+func Accept(remoteAddress string, conn io.ReadWriteCloser, storage storage.MultiTenantStorage, messageChan chan *data.Message, hostname string, monkey monkey.ChaosMonkey) {
 	defer conn.Close()
 
 	proto := smtp.NewProtocol()
@@ -98,13 +99,19 @@ func (c *Session) validateSender(from string) bool {
 	return true
 }
 
-func (c *Session) acceptMessage(msg *data.SMTPMessage) (id string, err error) {
+func (c *Session) acceptMessage(msg *data.SMTPMessage) (string, error) {
 	m := msg.Parse(c.proto.Hostname)
-	c.logf("Storing message %s", m.ID)
-	id, err = c.storage.Store(m)
-	c.logf("\n\n returned from storing message: %s\n\n\n\n", *m)
+
+	id, err := c.storage.Store(m, "m")
+	if err != nil {
+		c.logf("mongo message store error: %s", err)
+		return "", err
+	}
 	c.messageChan <- m
-	return
+	msgBytes, _ := json.Marshal(m)
+
+	c.logf("Storing message \n\n%s\n\n err: %s, id: %s\n\n", msgBytes, err, id)
+	return id, nil
 }
 
 func (c *Session) logf(message string, args ...interface{}) {

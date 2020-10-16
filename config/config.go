@@ -3,13 +3,13 @@ package config
 import (
 	"encoding/json"
 	"flag"
+	"github.com/mailhog/MailHog-Server/monkey"
 	"io/ioutil"
 	"log"
 
 	"github.com/ian-kent/envconf"
-	"github.com/mailhog/MailHog-Server/monkey"
+	"github.com/jay-dee7/storage"
 	"github.com/mailhog/data"
-	"github.com/mailhog/storage"
 )
 
 // DefaultConfig is the default config
@@ -41,14 +41,15 @@ type Config struct {
 	StorageType      string
 	CORSOrigin       string
 	MaildirPath      string
-	InviteJim        bool
-	Storage          storage.Storage
+	Storage          storage.MultiTenantStorage
+	SimpleStorage    storage.Storage
 	MessageChan      chan *data.Message
 	Assets           func(asset string) ([]byte, error)
-	Monkey           monkey.ChaosMonkey
 	OutgoingSMTPFile string
 	OutgoingSMTP     map[string]*OutgoingSMTP
 	WebPath          string
+	InviteJim        bool
+	Monkey           monkey.ChaosMonkey
 }
 
 // OutgoingSMTP is an outgoing SMTP server config
@@ -65,39 +66,18 @@ type OutgoingSMTP struct {
 
 var cfg = DefaultConfig()
 
-// Jim is a monkey
-var Jim = &monkey.Jim{}
-
 // Configure configures stuff
-func Configure() *Config {
-	switch cfg.StorageType {
-	case "memory":
-		log.Println("Using in-memory storage")
-		cfg.Storage = storage.CreateInMemory()
-	case "mongodb":
-		log.Println("Using MongoDB message storage")
-		s := storage.CreateMongoDB(cfg.MongoURI, cfg.MongoDb, cfg.MongoColl)
-		if s == nil {
-			log.Println("MongoDB storage unavailable, reverting to in-memory storage")
-			cfg.Storage = storage.CreateInMemory()
-		} else {
-			log.Println("Connected to MongoDB")
-			cfg.Storage = s
-		}
-	case "maildir":
-		log.Println("Using maildir message storage")
-		s := storage.CreateMaildir(cfg.MaildirPath)
+func Configure(multiTenant bool) *Config {
+
+	if multiTenant {
+		s := storage.CreateMultiTenantMongoDB(cfg.MongoURI, cfg.MongoDb)
 		cfg.Storage = s
-	default:
-		log.Fatalf("Invalid storage type %s", cfg.StorageType)
+	} else {
+		s := storage.CreateMongoDB(cfg.MongoURI, cfg.MongoDb, cfg.MongoColl)
+		cfg.SimpleStorage = s
 	}
 
-	Jim.Configure(func(message string, args ...interface{}) {
-		log.Printf(message, args...)
-	})
-	if cfg.InviteJim {
-		cfg.Monkey = Jim
-	}
+
 
 	if len(cfg.OutgoingSMTPFile) > 0 {
 		b, err := ioutil.ReadFile(cfg.OutgoingSMTPFile)
@@ -126,7 +106,5 @@ func RegisterFlags() {
 	flag.StringVar(&cfg.MongoColl, "mongo-coll", envconf.FromEnvP("MH_MONGO_COLLECTION", "messages").(string), "MongoDB collection, e.g. messages")
 	flag.StringVar(&cfg.CORSOrigin, "cors-origin", envconf.FromEnvP("MH_CORS_ORIGIN", "").(string), "CORS Access-Control-Allow-Origin header for API endpoints")
 	flag.StringVar(&cfg.MaildirPath, "maildir-path", envconf.FromEnvP("MH_MAILDIR_PATH", "").(string), "Maildir path (if storage type is 'maildir')")
-	flag.BoolVar(&cfg.InviteJim, "invite-jim", envconf.FromEnvP("MH_INVITE_JIM", false).(bool), "Decide whether to invite Jim (beware, he causes trouble)")
 	flag.StringVar(&cfg.OutgoingSMTPFile, "outgoing-smtp", envconf.FromEnvP("MH_OUTGOING_SMTP", "").(string), "JSON file containing outgoing SMTP servers")
-	Jim.RegisterFlags()
 }

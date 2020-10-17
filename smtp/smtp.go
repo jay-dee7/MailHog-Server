@@ -8,7 +8,7 @@ import (
 	"github.com/jay-dee7/MailHog-Server/config"
 )
 
-func Listen(cfg *config.Config, exitCh chan int) *net.TCPListener {
+func Listen(cfg *config.Config) *net.TCPListener {
 	log.Printf("[SMTP] Binding to address: %s\n", cfg.SMTPBindAddr)
 	ln, err := net.Listen("tcp", cfg.SMTPBindAddr)
 	if err != nil {

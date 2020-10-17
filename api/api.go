@@ -5,9 +5,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func CreateAPI(conf *config.Config, router *echo.Group) {
-	v1 := createAPIv1(conf, router)
-	v2 := createAPIv2(conf, router)
+func CreateAPI(conf *config.Config, group *echo.Group) {
+	v1 := createAPIv1(conf, group)
+	v2 := createAPIv2(conf, group)
 
 	go func() {
 		for {

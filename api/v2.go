@@ -26,17 +26,19 @@ type ErrorResp struct {
 	Error string `json:"error,omitempty"`
 }
 
-func createAPIv2(conf *config.Config, router *echo.Group) *APIv2 {
+func createAPIv2(conf *config.Config, group *echo.Group) *APIv2 {
 	v2 := &APIv2{
 		config:      conf,
 		messageChan: make(chan *data.Message),
 		wsHub:       websockets.NewHub(),
 	}
 
-	router.Add(http.MethodGet, conf.WebPath+"/api/v2/messages", v2.messages)
-	router.Add(http.MethodGet, conf.WebPath+"/api/v2/search", v2.search)
-	router.Add(http.MethodGet, conf.WebPath+"/api/v2/outgoing-smtp", v2.listOutgoingSMTP)
-	router.Add(http.MethodGet, conf.WebPath+"/api/v2/websocket", v2.websocket)
+	v1Group := group.Group(conf.WebPath + "/api/v2")
+
+	v1Group.Add(http.MethodGet, "/messages", v2.messages)
+	v1Group.Add(http.MethodGet, "/search", v2.search)
+	v1Group.Add(http.MethodGet, "/outgoing-smtp", v2.listOutgoingSMTP)
+	v1Group.Add(http.MethodGet, "/websocket", v2.websocket)
 
 	go func() {
 		for {

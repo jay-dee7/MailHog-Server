@@ -3,16 +3,14 @@ package smtp
 // http://www.rfc-editor.org/rfc/rfc5321.txt
 
 import (
-	"encoding/json"
-	"io"
-	"log"
-	"strings"
-
 	"github.com/ian-kent/linkio"
 	"github.com/jay-dee7/storage"
 	"github.com/mailhog/MailHog-Server/monkey"
 	"github.com/mailhog/data"
 	"github.com/mailhog/smtp"
+	"io"
+	"log"
+	"strings"
 )
 
 // Session represents a SMTP session using net.TCPConn
@@ -102,16 +100,13 @@ func (c *Session) validateSender(from string) bool {
 func (c *Session) acceptMessage(msg *data.SMTPMessage) (string, error) {
 	m := msg.Parse(c.proto.Hostname)
 
-	id, err := c.storage.Store(m, "m")
+	id, err := c.storage.Store(m, m.From.Domain)
 	if err != nil {
 		c.logf("mongo message store error: %s", err)
 		return "", err
 	}
-	c.messageChan <- m
-	msgBytes, _ := json.Marshal(m)
-
-	c.logf("Storing message \n\n%s\n\n err: %s, id: %s\n\n", msgBytes, err, id)
 	return id, nil
+
 }
 
 func (c *Session) logf(message string, args ...interface{}) {

@@ -35,7 +35,7 @@ var stream *goose.EventStream
 // ReleaseConfig is an alias to preserve go package API
 type ReleaseConfig config.OutgoingSMTP
 
-func createAPIv1(conf *config.Config, g *echo.Group) *APIv1 {
+func createAPIv1(conf *config.Config, group *echo.Group) *APIv1 {
 	v1 := &APIv1{
 		config:      conf,
 		messageChan: make(chan *data.Message),
@@ -43,13 +43,13 @@ func createAPIv1(conf *config.Config, g *echo.Group) *APIv1 {
 
 	stream = goose.NewEventStream()
 
-	v1Group := g.Group(conf.WebPath + "/api/v1")
+	v1Group := group.Group(conf.WebPath + "/api/v1")
 	msgGroup := v1Group.Group("/messages")
 
 	v1Group.Add(http.MethodGet, conf.WebPath+"/events", v1.eventStream)
 
-	msgGroup.Add(http.MethodGet, "", v1.messages)
-	msgGroup.Add(http.MethodDelete, "", v1.deleteAll)
+	v1Group.Add(http.MethodGet, "/messages", v1.messages)
+	v1Group.Add(http.MethodDelete, "/messages", v1.deleteAll)
 
 	msgGroup.Add(http.MethodGet, "/:id", v1.message)
 	msgGroup.Add(http.MethodDelete, "/:id", v1.deleteOne)

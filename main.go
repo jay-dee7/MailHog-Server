@@ -8,7 +8,6 @@ import (
 
 	"github.com/jay-dee7/MailHog-Server/api"
 	"github.com/jay-dee7/MailHog-Server/config"
-	mhconfig "github.com/mailhog/MailHog-Server/config"
 	"github.com/jay-dee7/MailHog-Server/smtp"
 	comcfg "github.com/mailhog/MailHog/config"
 	"github.com/mailhog/http"
@@ -34,6 +33,9 @@ func main() {
 	apiServerSig := make(chan error)
 
 	e := echo.New()
+	e.HidePort = true
+	e.HidePort = true
+
 	defer e.Shutdown(ctx)
 
 	router := e.Group("")
@@ -43,30 +45,7 @@ func main() {
 		apiServerSig <- e.Start(conf.APIBindAddr)
 	}()
 
-	sig := make(chan int)
-
-	c := &mhconfig.Config{
-		SMTPBindAddr:    conf.SMTPBindAddr,
-		APIBindAddr:      conf.APIBindAddr,
-		Hostname:         conf.Hostname,
-		MongoURI:         conf.MongoURI,
-		MongoDb:          conf.MongoDb,
-		MongoColl:        conf.MongoColl,
-		StorageType:      conf.StorageType,
-		CORSOrigin:       conf.CORSOrigin,
-		MaildirPath:      conf.MaildirPath,
-		InviteJim:        false,
-		Storage:          conf.SimpleStorage,
-		MessageChan:      conf.MessageChan,
-		Assets:           conf.Assets,
-		Monkey:           nil,
-		OutgoingSMTPFile: "",
-		OutgoingSMTP:     nil,
-		WebPath:          conf.WebPath,
-	}
-	_ = c
-
-	go smtp.Listen(conf, sig)
+	go smtp.Listen(conf)
 
 	e.Logger.Printf("api server stopped: %q", <-apiServerSig)
 }

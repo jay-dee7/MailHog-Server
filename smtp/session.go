@@ -27,10 +27,11 @@ type Session struct {
 	reader io.Reader
 	writer io.Writer
 	monkey monkey.ChaosMonkey
+	tenant string
 }
 
 // Accept starts a new SMTP session using io.ReadWriteCloser
-func Accept(remoteAddress string, conn io.ReadWriteCloser, storage storage.MultiTenantStorage, messageChan chan *data.Message, hostname string, monkey monkey.ChaosMonkey) {
+func Accept(remoteAddress string, conn io.ReadWriteCloser, storage storage.MultiTenantStorage, messageChan chan *data.Message, hostname string, monkey monkey.ChaosMonkey, tenant string) {
 	defer conn.Close()
 
 	proto := smtp.NewProtocol()
@@ -47,7 +48,7 @@ func Accept(remoteAddress string, conn io.ReadWriteCloser, storage storage.Multi
 		}
 	}
 
-	session := &Session{conn, proto, storage, messageChan, remoteAddress, false, "", link, reader, writer, monkey}
+	session := &Session{conn, proto, storage, messageChan, remoteAddress, false, "", link, reader, writer, monkey, tenant}
 	proto.LogHandler = session.logf
 	proto.MessageReceivedHandler = session.acceptMessage
 	proto.ValidateSenderHandler = session.validateSender
@@ -100,7 +101,7 @@ func (c *Session) validateSender(from string) bool {
 func (c *Session) acceptMessage(msg *data.SMTPMessage) (string, error) {
 	m := msg.Parse(c.proto.Hostname)
 
-	id, err := c.storage.Store(m, m.From.Domain)
+	id, err := c.storage.Store(m, c.tenant)
 	if err != nil {
 		c.logf("mongo message store error: %s", err)
 		return "", err

@@ -42,8 +42,11 @@ type ReleaseConfig config.OutgoingSMTP
 
 func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 
+	defer v1.ln.Close()
+
 	tenant, ok := ctx.Get("tenant").(string)
 	if !ok {
+		v1.ln.Close()
 		return ctx.JSON(http.StatusPreconditionFailed, echo.Map{
 			"error": "tenant is missing in request context",
 		})
@@ -53,6 +56,7 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 
 	conn, err := v1.ln.Accept()
 	if err != nil {
+		v1.ln.Close()
 		log.Printf("[SMTP] Error accepting connection: %s\n", err)
 		return ctx.JSON(http.StatusBadRequest, echo.Map{
 			"error": err.Error(),
@@ -63,6 +67,7 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 		ok := v1.config.Monkey.Accept(conn)
 		if !ok {
 			_ = conn.Close()
+			v1.ln.Close()
 			return ctx.JSON(http.StatusBadRequest, echo.Map{
 				"error": "",
 			})
@@ -76,6 +81,7 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 		v1.config.MessageChan,
 		v1.config.Hostname,
 		v1.config.Monkey,
+		tenant,
 	)
 
 	return ctx.JSON(http.StatusOK, echo.Map{"message": "email sent"})
@@ -100,7 +106,7 @@ func createAPIv1(conf *config.Config, group *echo.Group) *APIv1 {
 
 	stream = goose.NewEventStream()
 
-	group.POST("/send", v1.sendRawMessage)
+	group.Add(http.MethodGet, "/send", v1.sendRawMessage)
 	v1Group := group.Group(conf.WebPath + "/api/v1")
 	msgGroup := v1Group.Group("/messages")
 

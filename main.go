@@ -32,8 +32,8 @@ func main() {
 	apiServerSig := make(chan error)
 
 	e := echo.New()
-	e.HidePort = true
-	e.HidePort = true
+	//e.HidePort = true
+	//e.HidePort = true
 
 	defer e.Shutdown(ctx)
 

@@ -38,6 +38,7 @@ func Listen(cfg *config.Config) *net.TCPListener {
 			cfg.MessageChan,
 			cfg.Hostname,
 			cfg.Monkey,
+			"tenant",
 		)
 	}
 }

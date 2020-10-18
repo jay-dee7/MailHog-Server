@@ -45,16 +45,11 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 	defer v1.ln.Close()
 
 	tenant, ok := ctx.Get("tenant").(string)
-	if !ok {
-		//v1.ln.Close()
-		//return ctx.JSON(http.StatusPreconditionFailed, echo.Map{
-		//	"error": "tenant is missing in request context",
-		//})
+	if !ok || tenant == "" {
 		tenant = "tester_tenant"
 	}
 
-	log.Printf("tenant id: %s", tenant)
-
+	log.Printf("tenant id for conn: %s", tenant)
 	conn, err := v1.ln.Accept()
 	if err != nil {
 		v1.ln.Close()
@@ -107,7 +102,7 @@ func createAPIv1(conf *config.Config, group *echo.Group) *APIv1 {
 
 	stream = goose.NewEventStream()
 
-	group.Add(http.MethodGet, "/send", v1.sendRawMessage)
+	group.Add(http.MethodGet, "/accept", v1.sendRawMessage)
 	v1Group := group.Group(conf.WebPath + "/api/v1")
 	msgGroup := v1Group.Group("/messages")
 

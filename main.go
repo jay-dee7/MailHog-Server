@@ -8,7 +8,6 @@ import (
 
 	"github.com/jay-dee7/MailHog-Server/api"
 	"github.com/jay-dee7/MailHog-Server/config"
-	"github.com/jay-dee7/MailHog-Server/smtp"
 	comcfg "github.com/mailhog/MailHog/config"
 	"github.com/mailhog/http"
 )
@@ -45,7 +44,7 @@ func main() {
 		apiServerSig <- e.Start(conf.APIBindAddr)
 	}()
 
-	go smtp.Listen(conf)
+	//go smtp.Listen(conf)
 
 	e.Logger.Printf("api server stopped: %q", <-apiServerSig)
 }

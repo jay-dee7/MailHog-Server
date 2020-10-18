@@ -3,7 +3,10 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
+	smtp2 "github.com/jay-dee7/MailHog-Server/smtp"
 	"github.com/labstack/echo/v4"
+	"io"
+	"net"
 	"net/http"
 	"net/smtp"
 	"strconv"
@@ -27,6 +30,8 @@ import (
 type APIv1 struct {
 	config      *config.Config
 	messageChan chan *data.Message
+	rawConn     net.Conn
+	ln          net.Listener
 }
 
 // FIXME should probably move this into APIv1 struct
@@ -35,14 +40,67 @@ var stream *goose.EventStream
 // ReleaseConfig is an alias to preserve go package API
 type ReleaseConfig config.OutgoingSMTP
 
+func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
+
+	tenant, ok := ctx.Get("tenant").(string)
+	if !ok {
+		return ctx.JSON(http.StatusPreconditionFailed, echo.Map{
+			"error": "tenant is missing in request context",
+		})
+	}
+
+	log.Printf("tenant id: %s", tenant)
+
+	conn, err := v1.ln.Accept()
+	if err != nil {
+		log.Printf("[SMTP] Error accepting connection: %s\n", err)
+		return ctx.JSON(http.StatusBadRequest, echo.Map{
+			"error": err.Error(),
+		})
+	}
+
+	if v1.config.Monkey != nil {
+		ok := v1.config.Monkey.Accept(conn)
+		if !ok {
+			_ = conn.Close()
+			return ctx.JSON(http.StatusBadRequest, echo.Map{
+				"error": "",
+			})
+		}
+	}
+
+	smtp2.Accept(
+		conn.(*net.TCPConn).RemoteAddr().String(),
+		io.ReadWriteCloser(conn),
+		v1.config.Storage,
+		v1.config.MessageChan,
+		v1.config.Hostname,
+		v1.config.Monkey,
+	)
+
+	return ctx.JSON(http.StatusOK, echo.Map{"message": "email sent"})
+}
+
+func (v1 APIv1) CloseListener() error {
+	return v1.ln.Close()
+}
+
 func createAPIv1(conf *config.Config, group *echo.Group) *APIv1 {
+	log.Printf("[SMTP] Binding to address: %s\n", conf.SMTPBindAddr)
+	ln, err := net.Listen("tcp", conf.SMTPBindAddr)
+	if err != nil {
+		log.Fatalf("[SMTP] Error listening on socket: %s\n", err)
+	}
+
 	v1 := &APIv1{
 		config:      conf,
 		messageChan: make(chan *data.Message),
+		ln:          ln,
 	}
 
 	stream = goose.NewEventStream()
 
+	group.POST("/send", v1.sendRawMessage)
 	v1Group := group.Group(conf.WebPath + "/api/v1")
 	msgGroup := v1Group.Group("/messages")
 

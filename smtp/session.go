@@ -101,6 +101,8 @@ func (c *Session) validateSender(from string) bool {
 func (c *Session) acceptMessage(msg *data.SMTPMessage) (string, error) {
 	m := msg.Parse(c.proto.Hostname)
 
+	log.Printf("trnant id in smtp: %s", c.tenant)
+
 	id, err := c.storage.Store(m, c.tenant)
 	if err != nil {
 		c.logf("mongo message store error: %s", err)

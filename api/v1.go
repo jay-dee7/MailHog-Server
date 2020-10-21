@@ -84,10 +84,6 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, echo.Map{"message": "email sent"})
 }
 
-//func (v1 APIv1) CloseListener() error {
-//	return v1.ln.Close()
-//}
-
 func createAPIv1(conf *config.Config, group *echo.Group, ln net.Listener) *APIv1 {
 	//log.Printf("[SMTP] Binding to address: %s\n", conf.SMTPBindAddr)
 	//ln, err := net.Listen("tcp", conf.SMTPBindAddr)

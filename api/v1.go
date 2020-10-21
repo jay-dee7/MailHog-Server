@@ -80,12 +80,12 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, echo.Map{"message": "email sent"})
 }
 
-func createAPIv1(conf *config.Config, group *echo.Group, ln net.Listener) *APIv1 {
-	//log.Printf("[SMTP] Binding to address: %s\n", conf.SMTPBindAddr)
-	//ln, err := net.Listen("tcp", conf.SMTPBindAddr)
-	//if err != nil {
-	//	log.Fatalf("[SMTP] Error listening on socket: %s\n", err)
-	//}
+func createAPIv1(conf *config.Config, group *echo.Group) *APIv1 {
+	log.Printf("[SMTP] Binding to address: %s\n", conf.SMTPBindAddr)
+	ln, err := net.Listen("tcp", conf.SMTPBindAddr)
+	if err != nil {
+		log.Fatalf("[SMTP] Error listening on socket: %s\n", err)
+	}
 
 	v1 := &APIv1{
 		config:      conf,

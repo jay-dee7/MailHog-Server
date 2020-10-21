@@ -4,8 +4,6 @@ import (
 	"context"
 	"flag"
 	"github.com/labstack/echo/v4"
-	"log"
-	"net"
 	"time"
 
 	"github.com/jay-dee7/MailHog-Server/api"
@@ -40,15 +38,7 @@ func main() {
 	defer e.Shutdown(ctx)
 
 	router := e.Group("")
-
-	log.Printf("[SMTP] Binding to address: %s\n", conf.SMTPBindAddr)
-	ln, err := net.Listen("tcp", conf.SMTPBindAddr)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer ln.Close()
-
-	api.CreateAPI(conf, router, ln)
+	api.CreateAPI(conf, router)
 
 	go func() {
 		apiServerSig <- e.Start(conf.APIBindAddr)

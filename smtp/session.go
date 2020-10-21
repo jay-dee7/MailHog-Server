@@ -101,7 +101,7 @@ func (c *Session) validateSender(from string) bool {
 func (c *Session) acceptMessage(msg *data.SMTPMessage) (string, error) {
 	m := msg.Parse(c.proto.Hostname)
 
-	log.Printf("trnant id in smtp: %s", c.tenant)
+	log.Printf("tenant id in smtp: %s", c.tenant)
 
 	id, err := c.storage.Store(m, c.tenant)
 	if err != nil {
@@ -113,9 +113,9 @@ func (c *Session) acceptMessage(msg *data.SMTPMessage) (string, error) {
 }
 
 func (c *Session) logf(message string, args ...interface{}) {
-	message = strings.Join([]string{"[SMTP %s]", message}, " ")
-	args = append([]interface{}{c.remoteAddress}, args...)
-	log.Printf(message, args...)
+	//message = strings.Join([]string{"[SMTP %s]", message}, " ")
+	//args = append([]interface{}{c.remoteAddress}, args...)
+	//log.Printf(message, args...)
 }
 
 // Read reads from the underlying net.TCPConn

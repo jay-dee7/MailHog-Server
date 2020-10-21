@@ -46,6 +46,7 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 
 	tenant, ok := ctx.Get("tenant").(string)
 	if !ok || tenant == "" {
+		log.Println("tenant id is not present in context")
 		tenant = "tester_tenant"
 	}
 
@@ -83,16 +84,16 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, echo.Map{"message": "email sent"})
 }
 
-func (v1 APIv1) CloseListener() error {
-	return v1.ln.Close()
-}
+//func (v1 APIv1) CloseListener() error {
+//	return v1.ln.Close()
+//}
 
-func createAPIv1(conf *config.Config, group *echo.Group) *APIv1 {
-	log.Printf("[SMTP] Binding to address: %s\n", conf.SMTPBindAddr)
-	ln, err := net.Listen("tcp", conf.SMTPBindAddr)
-	if err != nil {
-		log.Fatalf("[SMTP] Error listening on socket: %s\n", err)
-	}
+func createAPIv1(conf *config.Config, group *echo.Group, ln net.Listener) *APIv1 {
+	//log.Printf("[SMTP] Binding to address: %s\n", conf.SMTPBindAddr)
+	//ln, err := net.Listen("tcp", conf.SMTPBindAddr)
+	//if err != nil {
+	//	log.Fatalf("[SMTP] Error listening on socket: %s\n", err)
+	//}
 
 	v1 := &APIv1{
 		config:      conf,
@@ -102,10 +103,10 @@ func createAPIv1(conf *config.Config, group *echo.Group) *APIv1 {
 
 	stream = goose.NewEventStream()
 
-	group.Add(http.MethodGet, "/accept", v1.sendRawMessage)
 	v1Group := group.Group(conf.WebPath + "/api/v1")
 	msgGroup := v1Group.Group("/messages")
 
+	v1Group.Add(http.MethodGet, "/accept", v1.sendRawMessage)
 	v1Group.Add(http.MethodGet, conf.WebPath+"/events", v1.eventStream)
 
 	v1Group.Add(http.MethodGet, "/messages", v1.messages)

@@ -41,9 +41,6 @@ var stream *goose.EventStream
 type ReleaseConfig config.OutgoingSMTP
 
 func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
-
-	defer v1.ln.Close()
-
 	tenant, ok := ctx.Get("tenant").(string)
 	if !ok || tenant == "" {
 		log.Println("tenant id is not present in context")
@@ -53,18 +50,17 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 	log.Printf("tenant id for conn: %s", tenant)
 	conn, err := v1.ln.Accept()
 	if err != nil {
-		v1.ln.Close()
 		log.Printf("[SMTP] Error accepting connection: %s\n", err)
 		return ctx.JSON(http.StatusBadRequest, echo.Map{
 			"error": err.Error(),
 		})
 	}
+	defer conn.Close()
 
 	if v1.config.Monkey != nil {
 		ok := v1.config.Monkey.Accept(conn)
 		if !ok {
 			_ = conn.Close()
-			v1.ln.Close()
 			return ctx.JSON(http.StatusBadRequest, echo.Map{
 				"error": "",
 			})

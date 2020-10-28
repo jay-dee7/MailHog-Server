@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/labstack/echo/v4"
 	"net/http"
 	"net/url"
 	"strconv"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/ian-kent/go-log/log"
 	"github.com/jay-dee7/MailHog-Server/config"
@@ -33,12 +34,12 @@ func createAPIv2(conf *config.Config, group *echo.Group) *APIv2 {
 		wsHub:       websockets.NewHub(),
 	}
 
-	v1Group := group.Group(conf.WebPath + "/api/v2")
+	// v1Group := group.Group(conf.WebPath + "/api/v2")
 
-	v1Group.Add(http.MethodGet, "/messages", v2.messages)
-	v1Group.Add(http.MethodGet, "/search", v2.search)
-	v1Group.Add(http.MethodGet, "/outgoing-smtp", v2.listOutgoingSMTP)
-	v1Group.Add(http.MethodGet, "/websocket", v2.websocket)
+	group.Add(http.MethodGet, conf.WebPath+"/api/v2/messages", v2.messages)
+	group.Add(http.MethodGet, conf.WebPath+"/api/v2/search", v2.search)
+	group.Add(http.MethodGet, conf.WebPath+"/api/v2/outgoing-smtp", v2.listOutgoingSMTP)
+	group.Add(http.MethodGet, conf.WebPath+"/api/v2/websocket", v2.websocket)
 
 	go func() {
 		for {

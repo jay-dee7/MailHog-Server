@@ -12,6 +12,7 @@ require (
 	github.com/ian-kent/go-log v0.0.0-20160113211217-5731446c36ab
 	github.com/ian-kent/goose v0.0.0-20141221090059-c3541ea826ad
 	github.com/ian-kent/linkio v0.0.0-20170807205755-97566b872887
+	github.com/jay-dee7/smtp v1.0.2-0.20201210121320-9710b09861d5
 	github.com/jay-dee7/storage v1.0.4-0.20201017173842-1f3d90b9bcfa
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/labstack/echo/v4 v4.1.17
@@ -19,7 +20,6 @@ require (
 	github.com/mailhog/MailHog-Server v1.0.1
 	github.com/mailhog/data v1.0.1
 	github.com/mailhog/http v1.0.1
-	github.com/mailhog/smtp v1.0.1
 	github.com/mailhog/storage v1.0.1
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/philhofer/fwd v1.0.0 // indirect

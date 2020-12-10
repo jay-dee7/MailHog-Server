@@ -3,8 +3,6 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
-	smtp2 "github.com/jay-dee7/MailHog-Server/smtp"
-	"github.com/labstack/echo/v4"
 	"io"
 	"net"
 	"net/http"
@@ -12,6 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	smtp2 "github.com/jay-dee7/MailHog-Server/smtp"
+	"github.com/labstack/echo/v4"
 
 	"github.com/ian-kent/go-log/log"
 	"github.com/jay-dee7/MailHog-Server/config"
@@ -44,10 +45,9 @@ func (v1 APIv1) sendRawMessage(ctx echo.Context) error {
 	tenant, ok := ctx.Get("tenant").(string)
 	if !ok || tenant == "" {
 		log.Println("tenant id is not present in context")
-		tenant = "tester_tenant"
+		return ctx.JSON(http.StatusBadRequest, echo.Map{"error": "tenant id is missing"})
 	}
 
-	log.Printf("tenant id for conn: %s", tenant)
 	conn, err := v1.ln.Accept()
 	if err != nil {
 		log.Printf("[SMTP] Error accepting connection: %s\n", err)
@@ -121,7 +121,6 @@ func createAPIv1(conf *config.Config, group *echo.Group) *APIv1 {
 					log.Printf("error in marshalIndent: %s", err)
 					continue
 				}
-				log.Printf("Sending content: %s\n", bytes)
 				v1.broadcast(bytes)
 			case <-ticker:
 				v1.keepalive()
@@ -285,9 +284,6 @@ func (v1 *APIv1) releaseOne(ctx echo.Context) error {
 		return ctx.JSON(http.StatusInternalServerError, ErrorResp{Error: err.Error()})
 	}
 	defer ctx.Request().Body.Close()
-	ctx.Logger().Printf("%+v", cfg)
-
-	ctx.Logger().Printf("Got message: %s", msg.ID)
 
 	if cfg.Save {
 		if _, ok := v1.config.OutgoingSMTP[cfg.Name]; ok {

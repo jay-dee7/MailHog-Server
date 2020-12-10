@@ -86,7 +86,7 @@ func (v2 *APIv2) messages(ctx echo.Context) error {
 
 	tenant, ok := ctx.Get("tenant").(string)
 	if !ok {
-		return ctx.JSON(http.StatusPreconditionRequired, echo.Map{
+		return ctx.JSON(http.StatusBadRequest, echo.Map{
 			"error": "missing tenant id in request context",
 		})
 	}

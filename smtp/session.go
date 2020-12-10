@@ -3,14 +3,14 @@ package smtp
 // http://www.rfc-editor.org/rfc/rfc5321.txt
 
 import (
+	"io"
+	"strings"
+
 	"github.com/ian-kent/linkio"
+	"github.com/jay-dee7/smtp"
 	"github.com/jay-dee7/storage"
 	"github.com/mailhog/MailHog-Server/monkey"
 	"github.com/mailhog/data"
-	"github.com/mailhog/smtp"
-	"io"
-	"log"
-	"strings"
 )
 
 // Session represents a SMTP session using net.TCPConn
@@ -101,8 +101,6 @@ func (c *Session) validateSender(from string) bool {
 func (c *Session) acceptMessage(msg *data.SMTPMessage) (string, error) {
 	m := msg.Parse(c.proto.Hostname)
 
-	log.Printf("tenant id in smtp: %s", c.tenant)
-
 	id, err := c.storage.Store(m, c.tenant)
 	if err != nil {
 		c.logf("mongo message store error: %s", err)
@@ -137,7 +135,7 @@ func (c *Session) Read() bool {
 	text := string(buf[0:n])
 	logText := strings.Replace(text, "\n", "\\n", -1)
 	logText = strings.Replace(logText, "\r", "\\r", -1)
-	c.logf("Received %d bytes: '%s'\n", n, logText)
+	// c.logf("Received %d bytes: '%s'\n", n, logText)
 
 	c.line += text
 
@@ -163,7 +161,7 @@ func (c *Session) Write(reply *smtp.Reply) {
 	for _, l := range lines {
 		logText := strings.Replace(l, "\n", "\\n", -1)
 		logText = strings.Replace(logText, "\r", "\\r", -1)
-		c.logf("Sent %d bytes: '%s'", len(l), logText)
+		// c.logf("Sent %d bytes: '%s'", len(l), logText)
 		c.writer.Write([]byte(l))
 	}
 }

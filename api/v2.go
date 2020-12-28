@@ -111,11 +111,6 @@ func (v2 *APIv2) search(ctx echo.Context) error {
 	start, limit := v2.getStartLimit(ctx.QueryParams())
 
 	kind := ctx.QueryParams().Get("kind")
-	if kind != "from" && kind != "to" && kind != "containing" {
-		return ctx.JSON(http.StatusBadRequest, ErrorResp{
-			Error: "invalid search param: kind",
-		})
-	}
 
 	query := ctx.QueryParams().Get("query")
 	if len(query) == 0 {

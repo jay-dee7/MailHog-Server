@@ -8,7 +8,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 
 	"github.com/mailhog/data"
-	"github.com/mailhog/storage"
 )
 
 type fakeRw struct {
@@ -40,7 +39,8 @@ func TestAccept(t *testing.T) {
 	Convey("Accept should handle a connection", t, func() {
 		frw := &fakeRw{}
 		mChan := make(chan *data.Message)
-		Accept("1.1.1.1:11111", frw, storage.CreateInMemory(), mChan, "localhost", nil)
+		/// @TODO create in-memorry multi tenant storage and use it here
+		Accept("1.1.1.1:11111", frw, nil, mChan, "localhost", nil, "test")
 	})
 }
 
@@ -52,7 +52,8 @@ func TestSocketError(t *testing.T) {
 			},
 		}
 		mChan := make(chan *data.Message)
-		Accept("1.1.1.1:11111", frw, storage.CreateInMemory(), mChan, "localhost", nil)
+		/// @TODO create in-memorry multi tenant storage and use it here
+		Accept("1.1.1.1:11111", frw, nil, mChan, "localhost", nil, "test")
 	})
 }
 
@@ -98,7 +99,8 @@ func TestAcceptMessage(t *testing.T) {
 			//So(m, ShouldNotBeNil)
 			wg.Done()
 		}()
-		Accept("1.1.1.1:11111", frw, storage.CreateInMemory(), mChan, "localhost", nil)
+		/// @TODO create in-memorry multi tenant storage and use it here
+		Accept("1.1.1.1:11111", frw, nil, mChan, "localhost", nil, "test")
 		wg.Wait()
 		So(handlerCalled, ShouldBeTrue)
 	})

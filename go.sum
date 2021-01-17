@@ -23,6 +23,8 @@ github.com/ian-kent/linkio v0.0.0-20170807205755-97566b872887 h1:LPaZmcRJS13h+ig
 github.com/ian-kent/linkio v0.0.0-20170807205755-97566b872887/go.mod h1:aE63iKqF9rMrshaEiYZroUYFZLaYoTuA7pBMsg3lJoY=
 github.com/jay-dee7/smtp v1.0.2-0.20201210121320-9710b09861d5 h1:XleZnGeXcCQf5mtVLvbw/cKJmdp9lmmItl/9V1MLePg=
 github.com/jay-dee7/smtp v1.0.2-0.20201210121320-9710b09861d5/go.mod h1:ly9RsSjJNi8Hu0fwvRQbP8R7U6ehHVn8605T0fiNEzQ=
+github.com/jay-dee7/storage v1.0.2-0.20210117130833-7fbf82b76db8 h1:exyPX16mCVc45zbSWxm3o9LD+fB4YSVUKORUHe8pwVU=
+github.com/jay-dee7/storage v1.0.2-0.20210117130833-7fbf82b76db8/go.mod h1:fP5K6nT68m0kqZXGCL0pu+U8JjzA4pfq4s1XlY7sx7c=
 github.com/jay-dee7/storage v1.0.2 h1:ly7PjBaMgjTQU4FAqzylDJ9bzcQ0ju2TX3uV1mnr5ug=
 github.com/jay-dee7/storage v1.0.2/go.mod h1:36cgeAdnhNpZ6+4iOXhhQN94k1Q1X9jT0R2u5Suqrgg=
 github.com/jay-dee7/storage v1.0.3 h1:1RIW5Flzh9YtbUdub1yIcvIW0TjOlVhjX1fLvVB0Zmo=

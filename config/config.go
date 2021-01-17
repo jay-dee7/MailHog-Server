@@ -70,7 +70,7 @@ var cfg = DefaultConfig()
 func Configure(multiTenant bool) *Config {
 
 	if multiTenant {
-		s := storage.CreateMultiTenantMongoDB(cfg.MongoURI, cfg.MongoDb, "")
+		s := storage.CreateMultiTenantMongoDB(cfg.MongoURI, cfg.MongoDb)
 		cfg.Storage = s
 	} else {
 		s := storage.CreateMongoDB(cfg.MongoURI, cfg.MongoDb, cfg.MongoColl)
